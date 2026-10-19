@@ -1,0 +1,9 @@
+{
+  "budget": { "unit": "USDC", "cap": "20", "period": "week", "perPaymentMax": "15" },
+  "coins": ["usdc-base", "usdc-sol"],
+  "recipients": [
+    { "name": "api-credits", "emoji": "🔑", "label": "API credits shop", "address": "0x52908400098527886E0F7030069857D2E4169EE7", "coins": ["usdc-base"] },
+    { "name": "domains", "emoji": "🌐", "label": "Domain registrar", "address": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", "coins": ["usdc-sol"] }
+  ],
+  "reserveHours": 72
+}

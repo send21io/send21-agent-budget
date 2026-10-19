@@ -1,0 +1,44 @@
+{
+  "name": "send21-agent-budget",
+  "version": "0.1.0",
+  "private": true,
+  "description": "budget-guard: give an AI agent a spending budget. The agent proposes send21 drafts, a human signs in their own wallet.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "bin": {
+    "budget-guard": "dist/src/index.js",
+    "budget-guard-stdio": "dist/src/stdio.js"
+  },
+  "scripts": {
+    "demo": "tsx src/demo/run.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/index.js",
+    "stdio": "node dist/src/stdio.js",
+    "webhook:register": "tsx scripts/register-webhook.ts",
+    "render:terminal": "tsx scripts/render-terminal.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.19.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0",
+    "vitest": "^3.2.4"
+  }
+}

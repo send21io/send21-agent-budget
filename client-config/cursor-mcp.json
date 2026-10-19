@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "send21-budget": {
+      "url": "http://127.0.0.1:8787/mcp",
+      "headers": { "Authorization": "Bearer the GUARD_TOKEN from your .env" }
+    }
+  }
+}

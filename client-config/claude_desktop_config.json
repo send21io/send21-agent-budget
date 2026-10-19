@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "send21-budget": {
+      "command": "node",
+      "args": ["/absolute/path/to/send21-agent-budget/dist/src/stdio.js"],
+      "env": {
+        "GUARD_URL": "http://127.0.0.1:8787/mcp",
+        "GUARD_TOKEN": "the GUARD_TOKEN from your .env"
+      }
+    }
+  }
+}

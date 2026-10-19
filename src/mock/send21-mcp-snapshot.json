@@ -1,0 +1,469 @@
+{
+ "_source": "Live tools/list, resources/list and prompts/list of https://send21.io/mcp (serverInfo version 1.4.0), fetched without a key on 2026-10-19. Used by the mock only.",
+ "tools": [
+  {
+   "name": "create_draft",
+   "description": "Create a non-custodial payment draft (you are the SENDER paying a receiver address). Amount is either exact base units (sats for BTC, micro-units for stablecoins, lamports for SOL, gwei for ETH) via amountBaseUnits, or fiat-pegged via fiatCurrency+fiatAmount with the exchange rate locked at creation. Returns the draft incl. id, amounts, fee, and status. Funds move only when the sender signs in their own wallet. send21 never holds keys. Requires scope drafts:write.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "receiverAddress": {
+      "description": "Receiver address (Bitcoin bc1..., Solana base58, or 0x... for Ethereum, Base, Arbitrum and Polygon)",
+      "type": "string"
+     },
+     "network": {
+      "description": "Network: Mainnet, Solana, Ethereum, Base, Arbitrum, Polygon (test: Testnet4, Signet, Regtest, SolanaDevnet, EthereumSepolia, BaseSepolia, ArbitrumSepolia, PolygonAmoy)",
+      "type": "string"
+     },
+     "currency": {
+      "description": "Asset: Btc (default), Usdc, Usdt, Eurc, Sol (native SOL on Solana), or Eth (native ETH on Ethereum, Base, Arbitrum)",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "amountBaseUnits": {
+      "description": "Exact amount in base units (sats / micro-units / lamports / gwei); omit when using fiat pricing",
+      "type": [
+       "integer",
+       "null"
+      ],
+      "default": null
+     },
+     "fiatCurrency": {
+      "description": "Fiat currency code for fiat-pegged amount, e.g. USD",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "fiatAmount": {
+      "description": "Fiat amount; requires fiatCurrency",
+      "type": [
+       "number",
+       "null"
+      ],
+      "default": null
+     },
+     "memo": {
+      "description": "Free-text memo shown on the draft (max 500 chars)",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "idempotencyKey": {
+      "description": "Idempotency key. A retry with the same key and the same parameters returns the original draft; the same key with another receiver, amount, currency or network is refused (422) and creates nothing",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "shortfallAbsorbUpToPercent": {
+      "description": "Accept short payments automatically when they are at most this percent below the amount (0 to 10); the receiver absorbs the difference. Overpayments always wait for a human.",
+      "type": [
+       "number",
+       "null"
+      ],
+      "default": null
+     }
+    },
+    "required": [
+     "receiverAddress",
+     "network"
+    ]
+   }
+  },
+  {
+   "name": "create_payment_request",
+   "description": "Create a payment request / checkout pay link (you are the RECEIVER asking to get paid). Price in any of 161 fiat currencies; the payer opens the returned payPath, picks one of the offered currencies (rate locks then), and pays a single QR-scannable transfer straight to your address. Requires scope drafts:write.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "fiatCurrency": {
+      "description": "Fiat currency the request is priced in, e.g. USD, EUR, SEK",
+      "type": "string"
+     },
+     "fiatAmount": {
+      "description": "Amount in the fiat currency",
+      "type": "number"
+     },
+     "options": {
+      "description": "Currencies the payer may choose from, each with your receiving address",
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "currency": {
+         "description": "Asset: Btc, Usdc, Usdt, Eurc, Sol, or Eth",
+         "type": "string"
+        },
+        "network": {
+         "description": "Network the address lives on: Mainnet, Solana, Ethereum, Base, Arbitrum, or Polygon",
+         "type": "string"
+        },
+        "address": {
+         "description": "The RECEIVER's own address for this currency; for Lightning, the receiver's Lightning address (name@wallet.com)",
+         "type": "string"
+        },
+        "method": {
+         "description": "MultiOutput (on-chain, default) or Lightning (Btc on Mainnet; send21 confirms it when the receiver's provider supports LUD-21)",
+         "type": [
+          "string",
+          "null"
+         ],
+         "default": null
+        }
+       },
+       "required": [
+        "currency",
+        "network",
+        "address"
+       ]
+      }
+     },
+     "orderId": {
+      "description": "Your own order/reference id, echoed in webhooks for reconciliation",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "memo": {
+      "description": "Message shown to the payer (max 500 chars)",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "expiryHours": {
+      "description": "Hours until the request expires (default 24)",
+      "type": [
+       "integer",
+       "null"
+      ],
+      "default": null
+     },
+     "idempotencyKey": {
+      "description": "Idempotency key. A retry with the same key and the same parameters returns the original request; the same key with another amount, currency or address is refused (422) and creates nothing",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "declineNote": {
+      "description": "What happens if the payer does not pay (plain text, max 200 chars). Shown on the pay page under the amount as \"If you don't pay:\". Use it when handing an over-budget purchase to a human, e.g. \"The order is cancelled and the hotel room released at 18:00.\"",
+      "type": [
+       "string",
+       "null"
+      ],
+      "default": null
+     },
+     "shortfallAbsorbUpToPercent": {
+      "description": "Accept short payments automatically when they are at most this percent below the price (0 to 10); the receiver absorbs the difference. Overpayments always wait for a human. Omit to have every differing amount reviewed.",
+      "type": [
+       "number",
+       "null"
+      ],
+      "default": null
+     },
+     "reuseOpenForOrder": {
+      "description": "True: if an open, unexpired request with the same orderId exists, return it instead of creating a second pay link for the same order (only when it asks for the same amount, currency and addresses). Recommended for agents that may retry with a new idempotency key.",
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "default": null
+     }
+    },
+    "required": [
+     "fiatCurrency",
+     "fiatAmount",
+     "options"
+    ]
+   }
+  },
+  {
+   "name": "get_draft",
+   "description": "Get a payment draft by id, including amounts, fee, quote, and status. Requires scope drafts:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "draftId": {
+      "description": "Draft id (GUID)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "draftId"
+    ]
+   }
+  },
+  {
+   "name": "get_draft_status",
+   "description": "Lightweight status snapshot of a draft: status (AwaitingPayment/Seen/Confirmed/Expired/Cancelled), paying txid, confirmations, and reviewState when a transfer with a different amount arrived (pending = needs the receiver's decision and the draft is not paid; accepted; rejected; unresolved = the draft expired while undecided, the money is with the receiver). Cheap to poll. Requires scope drafts:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "draftId": {
+      "description": "Draft id (GUID)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "draftId"
+    ]
+   }
+  },
+  {
+   "name": "get_fee_schedule",
+   "description": "Get the public send21 fee schedule: tiered percent by payment size in USD, min/max fee, and dust limit. No authentication needed.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   }
+  },
+  {
+   "name": "get_payment_request",
+   "description": "Get a payment request by id: status (Open/Completed/Cancelled/Expired), pay path, offered currencies, and the underlying draft once the payer committed. Includes changeSignals and changeNotes: what is unusual compared with the account's paid payments (new_address, new_asset, unusual_amount), the same lines the payer sees on the pay page; empty when nothing is unusual. Requires scope drafts:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "paymentRequestId": {
+      "description": "Payment request id (GUID)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "paymentRequestId"
+    ]
+   }
+  },
+  {
+   "name": "get_rate",
+   "description": "Get the current exchange rate for an asset in a fiat currency (rate = fiat units per 1 whole asset unit, with source provenance). Assets: Btc, Usdc, Usdt, Eurc, Sol, Eth. 161 ISO 4217 fiat currencies are supported. Requires an API key.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "fiatCurrency": {
+      "description": "Fiat currency code, e.g. USD, EUR, SEK",
+      "type": "string"
+     },
+     "asset": {
+      "description": "Asset: Btc, Usdc, Usdt, Eurc, Sol, or Eth",
+      "type": "string"
+     }
+    },
+    "required": [
+     "fiatCurrency",
+     "asset"
+    ]
+   }
+  },
+  {
+   "name": "get_transaction_template",
+   "description": "Get the transaction template for an on-chain draft: every output to pay, plus walletcreatefundedpsbt arguments and a pay-to-many CSV on Bitcoin, or payment URIs (and calldata on EVM chains) on Solana, Ethereum, Base, Arbitrum and Polygon. The sender's own wallet funds, reviews and signs it; send21 contains no signing code. Not for Lightning drafts (pay their invoice). Requires scope drafts:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "draftId": {
+      "description": "Draft id (GUID)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "draftId"
+    ]
+   }
+  },
+  {
+   "name": "list_address_book",
+   "description": "List the account's saved addresses (label, address, network, direction: Sending = recipients the owner pays, Receiving = the owner's own addresses). Requires scope addressbook:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {}
+   }
+  },
+  {
+   "name": "list_draft_quotes",
+   "description": "List every quote (rate lock) of a fiat-priced draft, oldest first. Quotes never change; a re-quote adds a new one with its own id. Each has a sha256 (RFC 8785 JCS + SHA-256). Requires scope drafts:read.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "draftId": {
+      "description": "Draft id (GUID)",
+      "type": "string"
+     }
+    },
+    "required": [
+     "draftId"
+    ]
+   }
+  },
+  {
+   "name": "submit_lightning_proof",
+   "description": "Confirm a paid Lightning draft with its proof of payment: the 64-character preimage the paying wallet shows after a Lightning payment. Needed for drafts with a pasted bolt11 invoice, and for Lightning addresses whose provider does not report payments. send21 checks that SHA-256 of the preimage equals the invoice's payment hash; the draft then confirms within about 30 seconds. Requires scope drafts:write.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "draftId": {
+      "description": "Draft id (GUID)",
+      "type": "string"
+     },
+     "preimage": {
+      "description": "Payment preimage, 64 hex characters",
+      "type": "string"
+     }
+    },
+    "required": [
+     "draftId",
+     "preimage"
+    ]
+   }
+  }
+ ],
+ "resources": [
+  {
+   "name": "brand-guidelines",
+   "title": "send21 logo and brand rules",
+   "uri": "send21://brand/guidelines",
+   "description": "How to show send21 on a website (\"Pay with send21\", integrations pages): which logo file for which background, colours, spacing, and the public URLs of every logo file.",
+   "mimeType": "text/markdown"
+  },
+  {
+   "name": "icon-on-dark",
+   "title": "send21 icon",
+   "uri": "send21://brand/icon-on-dark.svg",
+   "description": "The icon alone, cream and orange: for avatars, app icons and small spaces on dark backgrounds.",
+   "mimeType": "image/svg+xml"
+  },
+  {
+   "name": "logo-horizontal-on-dark-png",
+   "title": "send21 logo, horizontal, PNG",
+   "uri": "send21://brand/logo-horizontal-on-dark.png",
+   "description": "The horizontal logo as a 400 x 114 PNG on a dark (near-black) background, for emails and places that take no SVG.",
+   "mimeType": "image/png"
+  },
+  {
+   "name": "logo-horizontal-on-dark",
+   "title": "send21 logo, horizontal, for dark backgrounds",
+   "uri": "send21://brand/logo-horizontal-on-dark.svg",
+   "description": "Icon and wordmark side by side, cream and orange: for dark backgrounds. The main logo.",
+   "mimeType": "image/svg+xml"
+  },
+  {
+   "name": "logo-stacked-on-dark",
+   "title": "send21 logo, stacked, for dark backgrounds",
+   "uri": "send21://brand/logo-stacked-on-dark.svg",
+   "description": "Icon above the wordmark, cream and orange: for dark backgrounds and square spaces.",
+   "mimeType": "image/svg+xml"
+  },
+  {
+   "name": "wordmark-on-dark",
+   "title": "send21 wordmark for dark backgrounds",
+   "uri": "send21://brand/wordmark-on-dark.svg",
+   "description": "The wordmark in cream and orange: for dark backgrounds.",
+   "mimeType": "image/svg+xml"
+  },
+  {
+   "name": "wordmark-on-light",
+   "title": "send21 wordmark for light backgrounds",
+   "uri": "send21://brand/wordmark-on-light.svg",
+   "description": "The wordmark in charcoal and orange: the one to use on white or light backgrounds.",
+   "mimeType": "image/svg+xml"
+  },
+  {
+   "name": "currencies",
+   "title": "Supported currencies and networks",
+   "uri": "send21://docs/currencies",
+   "description": "Every currency and network a payment can use on this server, the values the create_payment_request and create_draft tools take for them, and the fiat currencies prices can be set in.",
+   "mimeType": "text/markdown"
+  },
+  {
+   "name": "overview",
+   "title": "send21 overview for AI assistants",
+   "uri": "send21://docs/overview",
+   "description": "What send21 is and is not, the payment flows, currencies, fees and links: the same text as https://send21.io/llms.txt.",
+   "mimeType": "text/markdown"
+  },
+  {
+   "name": "webhook-guide",
+   "title": "Webhook guide",
+   "uri": "send21://docs/webhooks",
+   "description": "Webhook events, delivery headers, retries, and how to verify the X-Send21-Signature-V2 signature (with code).",
+   "mimeType": "text/markdown"
+  },
+  {
+   "name": "fee-schedule",
+   "title": "send21 fee schedule",
+   "uri": "send21://fees/schedule",
+   "description": "Tiered percent by payment size in USD, minimum and maximum fee, and the Bitcoin dust limit. Same data as GET /api/v1/fees/schedule.",
+   "mimeType": "application/json"
+  }
+ ],
+ "prompts": [
+  {
+   "name": "check_payment",
+   "title": "Check a payment",
+   "description": "Check where a send21 pay link or payment draft stands and explain it in plain words.",
+   "arguments": [
+    {
+     "name": "id",
+     "description": "The pay link (payment request) id or the draft id",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "create_pay_link",
+   "title": "Create a pay link",
+   "description": "Create a send21 pay link for an amount in your currency, paid straight to your own wallet in the currencies you accept.",
+   "arguments": [
+    {
+     "name": "amount",
+     "description": "Amount, e.g. 49.90",
+     "required": true
+    },
+    {
+     "name": "fiatCurrency",
+     "description": "Fiat currency the price is in, e.g. EUR, USD, SEK",
+     "required": true
+    },
+    {
+     "name": "acceptedCurrencies",
+     "description": "The currencies you accept, each with your own receiving address, e.g. \"USDC on Solana to 5Gv7..., BTC over Lightning to name@wallet.com\"",
+     "required": true
+    },
+    {
+     "name": "memo",
+     "description": "Optional message shown to the payer, e.g. an invoice number",
+     "required": false
+    },
+    {
+     "name": "orderId",
+     "description": "Optional order or reference id, echoed in webhooks",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "handle_amount_mismatch",
+   "title": "Handle a payment with a different amount",
+   "description": "Walk the owner through a transfer that arrived with a different amount than billed: what arrived, and how to accept or decline it.",
+   "arguments": [
+    {
+     "name": "draftId",
+     "description": "The draft id from the draft.amount_mismatch webhook or from check_payment",
+     "required": true
+    }
+   ]
+  }
+ ]
+}
