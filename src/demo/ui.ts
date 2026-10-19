@@ -64,3 +64,10 @@ export function args(a: Record<string, unknown>): string {
 }
 
 export const short = (s: string, head = 6, tail = 4) => (s.length > head + tail + 1 ? `${s.slice(0, head)}…${s.slice(-tail)}` : s);
+
+/**
+ * A wallet URI for a human to check: shortens each address inside it but keeps the
+ * scheme, chain id (@8453), token and amount visible. Cutting the whole URI in the
+ * middle hid exactly the parts a reviewer has to see.
+ */
+export const shortUri = (uri: string) => uri.replace(/0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44}/g, (a) => short(a, 6, 4));

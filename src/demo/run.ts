@@ -16,7 +16,7 @@ import { createMockSend21 } from "../mock/send21.js";
 import { Store } from "../store.js";
 import { parseToolResult } from "../upstream.js";
 import { llmAgent, scriptedAgent, TASK, type AgentIO } from "./agent.js";
-import { args as fmtArgs, bar, c, line, short, wrap } from "./ui.js";
+import { args as fmtArgs, bar, c, line, short, shortUri, wrap } from "./ui.js";
 
 const argv = process.argv.slice(2);
 const interactive = argv.includes("--interactive");
@@ -97,7 +97,7 @@ async function main() {
           `${c.bold("┌ review")}  ${rcpt.emoji} ${rcpt.label} · ${c.bold(p.amount)} ${c.gray(`on ${coin.network}`)}`,
           `│ reason  ${c.cream(p.reason)}`,
           `│ to      ${short(r.address, 8, 6)}   draft ${short(p.draftId ?? "", 8, 4)}   core ${short(p.coreSha256 ?? "", 8, 4)}`,
-          `│ wallet  ${c.gray(short(uri, 34, 18))}`,
+          `│ wallet  ${c.gray(shortUri(uri))}`,
         ].join("\n"),
         c.cream,
       ),
@@ -163,7 +163,7 @@ async function main() {
   out(c.gray("─".repeat(78)));
   for (const a of attempts) out(`   ${(a.id && ICONS[store.get(a.id)?.status ?? ""]) || a.icon} ${a.amount.padStart(10)}  ${a.to.padEnd(14)} ${c.gray(a.what)}`);
   out(meter(guard.usage()));
-  out(c.gray("   send21 never holds keys or funds. Every payment above was signed by a human."));
+  out(c.gray("   send21 never holds keys or funds. Every payment that went out was signed by a human."));
   rl?.close();
   await client.close();
   agentSide.close();

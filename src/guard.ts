@@ -185,7 +185,7 @@ export class BudgetGuard {
         return {
           kind: "block",
           code: "over_budget",
-          reason: `${this.fmt(amount)} would go over the ${pol.period}ly budget: ${u.spent} spent + ${u.reserved} waiting for a signature, ${u.left} left of ${u.cap}. Resets ${u.resetsAt}`,
+          reason: `${this.fmt(amount)} would go over the ${pol.period}ly budget: ${u.spent} spent + ${u.reserved} waiting for a signature, ${u.left} left of ${u.cap}. Resets ${resetLabel(u.resetsAt)}`,
         };
       }
       const id = `p_${randomBytes(6).toString("hex")}`;
@@ -381,4 +381,11 @@ export function checkDraft(raw: unknown, p: Proposal, pol: Policy): DraftCheck {
   if (problems.length) return { ok: false, draftId, problems };
   const expiresAt = typeof core.expiresAt === "string" ? core.expiresAt : typeof obj.expiresAt === "string" ? obj.expiresAt : null;
   return { ok: true, draftId: draftId!, coreSha256, expiresAt };
+}
+
+/** "Mon 26 Oct 00:00 UTC": readable for the human, unambiguous for the agent. */
+export function resetLabel(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "")} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
 }
