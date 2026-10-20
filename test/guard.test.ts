@@ -96,6 +96,21 @@ describe("propose", () => {
     expect(guard.usage().minor.reserved).toBe(0);
   });
 
+  it("explains an unapproved address and an account the owner has not taken over", async () => {
+    const { mock } = setup();
+    for (const [error, blocked] of [
+      ['422: {"error":"address_not_approved"}', "address_not_approved"],
+      ['403: {"error":"owner_not_confirmed"}', "owner_not_confirmed"],
+    ] as const) {
+      const upstream: Upstream = { ...mock.upstream, callTool: async () => ({ ok: false, error }) };
+      const { guard } = setup({ upstream });
+      const r = await guard.propose(credits());
+      expect(r).toMatchObject({ ok: false, blocked });
+      expect(r.ok ? "" : r.reason).toMatch(/Nothing was created/);
+      expect(guard.usage().minor.reserved).toBe(0);
+    }
+  });
+
   it("an unknown outcome keeps the budget reserved; the retry reuses the Idempotency-Key", async () => {
     const { mock } = setup();
     const keys: unknown[] = [];

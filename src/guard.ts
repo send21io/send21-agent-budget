@@ -22,6 +22,8 @@ export type BlockCode =
   | "over_budget"
   | "purchase_id_conflict"
   | "send21_refused"
+  | "address_not_approved"
+  | "owner_not_confirmed"
   | "send21_unreachable"
   | "draft_mismatch";
 
@@ -239,6 +241,23 @@ export class BudgetGuard {
     }
     if (!result.ok) {
       const failed = this.update(p.id, { status: "failed", note: result.error.slice(0, 200) });
+      // send21 MCP 1.5.0 (https://send21.io/docs/mcp): new accounts only pay addresses the owner approved,
+      // and an agent-created account creates nothing until the owner takes it over. Nothing was created.
+      const code = /address_not_approved|owner_not_confirmed/.exec(`${result.error} ${JSON.stringify(result.data ?? "")}`)?.[0];
+      if (code === "address_not_approved") {
+        return this.block(
+          "address_not_approved",
+          `send21 refused the draft (422 address_not_approved): the address for ${p.to} is not approved in the send21 account yet. Nothing was created and the budget is released. Ask the human to sign in to send21 and approve it; an agent cannot approve addresses.`,
+          failed,
+        );
+      }
+      if (code === "owner_not_confirmed") {
+        return this.block(
+          "owner_not_confirmed",
+          "send21 refused the draft (403 owner_not_confirmed): the owner has not taken over the send21 account yet. Nothing was created and the budget is released. The owner opens the link send21 emailed them first.",
+          failed,
+        );
+      }
       return this.block("send21_refused", `send21 refused the draft: ${result.error.slice(0, 200)}`, failed);
     }
     const check = checkDraft(result.data, p, pol);

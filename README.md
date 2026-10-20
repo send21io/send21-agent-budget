@@ -14,6 +14,7 @@
 
 1. **Try it now, no key:** `npm install && npm run demo`. Add `-- --interactive` to play the human yourself, or `-- --llm` with `AGENT_LLM_BASE_URL` + `AGENT_LLM_MODEL` (any OpenAI-compatible endpoint, such as a local model server) to replace the scripted agent.
 2. **Budget.** `cp budget.example.json budget.json`: unit (`USDC`, or a fiat like `EUR`), cap, period (`day` / `week` / `month`, UTC), per-payment max, coins and named recipients with their addresses.
+   - 🔐 **Approve each recipient address in send21.** New send21 accounts (created on or after 20 Oct 2026) only let a key pay addresses the owner approved. Add them in the send21 app, or propose them (MCP `propose_receiving_address` with `direction: "Sending"`), then sign in and approve each with a passkey or authenticator code. Older accounts can opt in under Settings.
 3. **send21 key for the guard only.** On [send21.io/api-keys](https://send21.io/api-keys), create a key with `drafts:write` and `drafts:read` (add `webhooks:manage` for step 4). `cp .env.example .env`, fill in the key and two different tokens: `GUARD_TOKEN` (for the agent) and `ADMIN_TOKEN` (for you), each from `openssl rand -hex 24`.
 4. **Webhook.** Put only `WEBHOOK_PORT` behind your own HTTPS address (for example a reverse proxy with a free Let's Encrypt certificate), set `PUBLIC_URL`, run `npm run webhook:register` and paste the printed `SEND21_WEBHOOK_SECRET` into `.env`.
 5. **Run and connect your agent.** `npm run build && npm start`, then add the MCP config below to your client.
@@ -62,7 +63,7 @@ Both are in [`client-config/`](client-config). Compare send21's own config for t
 | resources `send21://docs/overview`, `send21://docs/currencies`, `send21://fees/schedule`, `send21://docs/webhooks`, `send21://brand/*` | send21, public |
 | prompt `check_payment` | send21 |
 
-Not offered to the agent: `create_draft`, `create_payment_request`, `submit_lightning_proof`, `list_address_book`, `get_payment_request`, and the prompts `create_pay_link` and `handle_amount_mismatch`. Proposing is the only way to ask for money.
+Not offered to the agent: `create_draft`, `create_payment_request`, `submit_lightning_proof`, `list_address_book`, `get_payment_request`, `propose_receiving_address`, `get_account_status`, `create_account`, and the prompts `create_pay_link` and `handle_amount_mismatch`. Proposing is the only way to ask for money.
 
 ## How it works
 
@@ -100,6 +101,22 @@ A **draft** is the send21 object for "pay someone else": the human is the sender
 | `draft.expired`, `draft.cancelled` | ⌛ / ✖️ | released |
 
 Lightning is not in the coin list: send21's MCP `create_draft` has no `paymentMethod` argument, and Lightning drafts need `paymentMethod: "Lightning"`.
+
+## Agent onboarding: approved addresses
+
+**Agents onboard themselves; humans approve where the money lands.** Since send21 MCP 1.5.0, new accounts only let a key use addresses the owner approved. Set up the account behind budget-guard with send21's own MCP server ([docs](https://send21.io/docs/mcp)):
+
+1. `get_account_status`: what still stands between the agent and a live pay link (owner confirmed, receiving-address policy, approved and waiting addresses, fees, next steps).
+2. `propose_receiving_address`: the agent proposes an address (`direction: "Receiving"` for the owner's own pay-link address, `"Sending"` for a recipient paid with drafts, like the ones in `budget.json`). It is saved unapproved.
+3. **The owner approves it**: signed in to send21, with a passkey or authenticator code. No API key, scope or agent can approve an address.
+4. `create_payment_request` (or here, `propose_payment` → `create_draft`) with approved addresses only. Any other address gets 422 `address_not_approved` and nothing is created.
+
+No key yet? The agent can call `create_account` (`POST /api/v1/accounts/agent-signup`) with the owner's email and gets a limited bootstrap key. Until the owner takes the account over from the emailed link, creating anything returns 403 `owner_not_confirmed`. The agent never approves addresses, spends or signs: a human signs every payment in their own wallet.
+
+## Troubleshooting
+
+- **`address_not_approved` (422):** the recipient's address isn't approved in your send21 account, so no draft was created and the budget is released. Sign in to send21, approve it (passkey or authenticator code), then propose again.
+- **`owner_not_confirmed` (403):** the account was created by an agent and the owner hasn't taken it over yet. Open the link send21 emailed you (valid 72 hours) and set up a passkey or password.
 
 ## Security notes
 
